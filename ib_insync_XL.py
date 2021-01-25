@@ -19,15 +19,15 @@ def updateAccountAndPortfolio(accountNumber):
     wb.sheets(sheetName).range("D1").value = accountValue(accountNumber, 'CashBalance')
 
     acccountPositions = []
-    for acccountPosition in ib.positions():
+    for acccountPosition in ib.portfolio():
         #ib.reqPnLSingle(account=portfolioItem.account, conId=portfolioItem.contract.conId, modelCode='')
-        acccountPositions.append([acccountPosition.contract.localSymbol, acccountPosition.position, float(acccountPosition.avgCost)*float(acccountPosition.position), acccountPosition.unrealizedPNL])
+        acccountPositions.append([acccountPosition.contract.localSymbol, acccountPosition.position, float(acccountPosition.averageCost)*float(acccountPosition.position), acccountPosition.unrealizedPNL])
     acccountPositions.sort()
     #wb.sheets(sheetName).range(range("A5"), range("A5").offset(0, 3).end('down')).clear_contents()
     wb.sheets(sheetName).range("A5").options(ndim=2).value = acccountPositions
 
 
-def closePositions(xlSheetName):
+def closePositions():
     raise ValueError ("Yet to write this function")
 
 
