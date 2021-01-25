@@ -101,10 +101,10 @@ def main():
 
     loop = asyncio.get_event_loop()
 
-    for accountNumber in accountNumberToSheet:
-        updateAccountAndPortfolio(accountNumber)
-
-    ib.sleep(120)
+    while True:
+        for accountNumber in accountNumberToSheet:
+            updateAccountAndPortfolio(accountNumber)
+        ib.sleep(120)
 
     try:
         loop.run_forever()
