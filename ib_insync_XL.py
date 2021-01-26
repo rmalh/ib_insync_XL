@@ -11,7 +11,10 @@ def accountValue(accountNumber, tag: str) -> str:
 
 def updateAccountAndPortfolio():
 
-    acccountPositionsDict = {"Add 1st account number here": [], "Add 2nd account number here": []}
+    # Create an empty dictionary with each account number and empty lists that will be populaqted with positions
+    acccountPositionsDict = {}
+    for accountNumber in accountNumberToSheet:
+        acccountPositionsDict[accountNumber] = []
 
     # Get all positions for all accounts and organize them into a dictionary of lists
     for acccountPosition in ib.positions():
@@ -38,7 +41,6 @@ def getIbConnectionPort(xlSheetName):
 
 
 def readAndPlaceXLOrders():
-    sheetToAccountNumber = {"Brokerage": "Add account number here"}
     accountNumberToSheet = {"Add account number here": "Brokerage"}
 
     wb = xw.Book.caller()
@@ -82,8 +84,7 @@ def globalCancelOrders():
 
 
 def main():
-    global ib, wb, portfolioItems, sheetToAccountNumber, accountNumberToSheet
-    sheetToAccountNumber = {"Brokerage":"Add account number here"}
+    global ib, wb, accountNumberToSheet
     accountNumberToSheet = {"Add account number here":"Brokerage"}
 
     #controller = ibi.IBController('TWS', '969', 'paper',
