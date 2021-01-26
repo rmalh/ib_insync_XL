@@ -18,14 +18,16 @@ def updateAccountAndPortfolio(accountNumber):
     wb.sheets(sheetName).range("B1").value = accountValue(accountNumber, 'NetLiquidationByCurrency')
     wb.sheets(sheetName).range("D1").value = accountValue(accountNumber, 'CashBalance')
 
-    acccountPositions = []
+    acccountPositionsDict = {"Add 1st account number here": [], "Add 2nd account number here": []}
+
+    # Get all positions for all accounts and organize them into a dictionary of lists
     for acccountPosition in ib.portfolio():
         #ib.reqPnLSingle(account=portfolioItem.account, conId=portfolioItem.contract.conId, modelCode='')
-        acccountPositions.append([acccountPosition.contract.localSymbol, acccountPosition.position, float(acccountPosition.averageCost)*float(acccountPosition.position), acccountPosition.unrealizedPNL])
-    acccountPositions.sort()
-    #wb.sheets(sheetName).range(range("A5"), range("A5").offset(0, 3).end('down')).clear_contents()
-    wb.sheets(sheetName).range("A5").options(ndim=2).value = acccountPositions
-
+        acccountPositionsDict[acccountPosition.account].append([acccountPosition.contract.localSymbol, acccountPosition.position, float(acccountPosition.avgCost)*float(acccountPosition.position)])
+    
+    for accountNumber in acccountPositionsDict:
+        acccountPositionsDict.get(accountNumber).sort()
+    wb.sheets(sheetName).range("A5").options(ndim=2).value = acccountPositionsDict.get(acccountPosition.account)
 
 def closePositions():
     raise ValueError ("Yet to write this function")
