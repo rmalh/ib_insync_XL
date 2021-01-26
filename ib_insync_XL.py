@@ -9,25 +9,21 @@ def accountValue(accountNumber, tag: str) -> str:
         if v.tag == tag and v.currency == 'BASE'), '')
 
 
-def updateAccountAndPortfolio(accountNumber):
-
-    #get name of Excel worksheet for the account number received, so updates can be made to the correct worksheet
-    sheetName = accountNumberToSheet.get(accountNumber)
-
-    #Set NVL and Cash values in Excel cells
-    wb.sheets(sheetName).range("B1").value = accountValue(accountNumber, 'NetLiquidationByCurrency')
-    wb.sheets(sheetName).range("D1").value = accountValue(accountNumber, 'CashBalance')
+def updateAccountAndPortfolio():
 
     acccountPositionsDict = {"Add 1st account number here": [], "Add 2nd account number here": []}
 
     # Get all positions for all accounts and organize them into a dictionary of lists
-    for acccountPosition in ib.portfolio():
-        #ib.reqPnLSingle(account=portfolioItem.account, conId=portfolioItem.contract.conId, modelCode='')
-        acccountPositionsDict[acccountPosition.account].append([acccountPosition.contract.localSymbol, acccountPosition.position, float(acccountPosition.avgCost)*float(acccountPosition.position)])
-    
+    for acccountPosition in ib.positions():
+        acccountPositionsDict[acccountPosition.account].append([acccountPosition.contract.localSymbol, acccountPosition.position, float(acccountPosition.avgCost)*float(acccountPosition.position)])#, acccountPosition.unrealizedPNL])
+
+    # Update the worksheets with positions
     for accountNumber in acccountPositionsDict:
+        #Set NVL and Cash values in Excel cells
+        wb.sheets(accountNumberToSheet.get(accountNumber)).range("B1").value = accountValue(accountNumber, 'NetLiquidationByCurrency')
+        wb.sheets(accountNumberToSheet.get(accountNumber)).range("D1").value = accountValue(accountNumber, 'CashBalance')
         acccountPositionsDict.get(accountNumber).sort()
-    wb.sheets(sheetName).range("A5").options(ndim=2).value = acccountPositionsDict.get(acccountPosition.account)
+        wb.sheets(accountNumberToSheet.get(accountNumber)).range("A5").options(ndim=2).value = acccountPositionsDict.get(acccountPosition.account)
 
 def closePositions():
     raise ValueError ("Yet to write this function")
@@ -104,8 +100,7 @@ def main():
     loop = asyncio.get_event_loop()
 
     while True:
-        for accountNumber in accountNumberToSheet:
-            updateAccountAndPortfolio(accountNumber)
+        updateAccountAndPortfolio()
         ib.sleep(120)
 
     try:
