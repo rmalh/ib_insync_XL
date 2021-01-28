@@ -18,18 +18,70 @@ def updateAccountAndPortfolio():
 
     # Get all positions for all accounts and organize them into a dictionary of lists
     for acccountPosition in ib.positions():
-        acccountPositionsDict[acccountPosition.account].append([acccountPosition.contract.localSymbol, acccountPosition.position, float(acccountPosition.avgCost)*float(acccountPosition.position)])#, acccountPosition.unrealizedPNL])
-
+        #ib.reqPnLSingle(account=portfolioItem.account, conId=portfolioItem.contract.conId, modelCode='')
+        acccountPositionsDict[acccountPosition.account].append([acccountPosition.contract.localSymbol, acccountPosition.position, float(acccountPosition.avgCost)*float(acccountPosition.position)])#, ib.PnLSingle(account=acccountPosition.account, conId=acccountPosition.contract.conId, modelCode='').get("unrealizedPnL"))#, acccountPosition.unrealizedPNL])
+    
     # Update the worksheets with positions
     for accountNumber in acccountPositionsDict:
+        sheetName = accountNumberToSheet.get(accountNumber)
+
         #Set NVL and Cash values in Excel cells
-        wb.sheets(accountNumberToSheet.get(accountNumber)).range("B1").value = accountValue(accountNumber, 'NetLiquidationByCurrency')
-        wb.sheets(accountNumberToSheet.get(accountNumber)).range("D1").value = accountValue(accountNumber, 'CashBalance')
+        wb.sheets(sheetName).range("B1").value = accountValue(accountNumber, 'NetLiquidationByCurrency')
+        wb.sheets(sheetName).range("D1").value = accountValue(accountNumber, 'CashBalance')
         acccountPositionsDict.get(accountNumber).sort()
-        wb.sheets(accountNumberToSheet.get(accountNumber)).range("A5").options(ndim=2).value = acccountPositionsDict.get(acccountPosition.account)
+
+        # Get the Excel cell address where "Positions to Close" begin
+        temp_macro = wb.macro("findTextOccurence")
+        cellAddress = temp_macro(sheetName, 'Portfolio')
+
+        #wb.sheets(sheetName).range(range(cellAddress), range(cellAddress).offset(0, 3).end('down')).clear_contents()
+        wb.sheets(sheetName).range(cellAddress).options(ndim=2).value = acccountPositionsDict.get(acccountPosition.account)
+
 
 def closePositions():
-    raise ValueError ("Yet to write this function")
+    wb = xw.Book.caller()
+    ib = ibi.IB()
+    closePositionsWorksheet = wb.sheets.active.name
+
+    # Get the Excel cell address where "Positions to Close" begin
+    temp_macro = wb.macro("findTextOccurence")
+    cellAddress = temp_macro(closePositionsWorksheet, 'Positions to Close')
+
+    # Start a new IB connection
+    ib.connect('127.0.0.1', getIbConnectionPort(closePositionsWorksheet), clientId=2)
+
+    positionsToClose = []
+
+    # Retrieve positions to be closed
+    if wb.sheets(closePositionsWorksheet).range(cellAddress).value.strip() == "":
+        raise ValueError ("No Positions to Close")
+    else:
+        positionsToClose = wb.sheets(closePositionsWorksheet).range(cellAddress).options(expand='table').value
+    
+    # Within currently held positions, find the positions to be closed, and place closing orders
+    for acccountPosition in ib.positions():
+        for position in positionsToClose:
+            if acccountPosition.contract.localSymbol.replace(" ", "") == position[0].replace(" ", ""):
+                # if current position for a contract is LONG, then set closing action to "SELL"
+                # otherwise set closing action to "BUY"
+                closingAction = "SELL" if acccountPosition.position > 0 else "BUY"
+
+                # Prepare closing order
+                if position[1].upper() == "LMT":
+                    # If limit price is not set, then raise error
+                    if ibi.util.isNan(position[0]) or position[0] < 0:
+                        ib.disconnect()
+                        raise ValueError ("Incorrect Limit Price for " + position[0])
+                    closingOrder = ibi.LimitOrder(closingAction, acccountPosition.position, position[2])
+                elif position[1].upper() == "MKT":
+                    closingOrder = ibi.LimitOrder(closingAction, acccountPosition.position)
+                else:
+                    raise ValueError ("Incorrect Order Type for " + position[0])
+
+                ib.placeOrder(acccountPosition.contract, closingOrder)
+
+    # Disconnect from IB after placing the orders
+    ib.disconnect()
 
 
 def getIbConnectionPort(xlSheetName):
@@ -47,15 +99,20 @@ def readAndPlaceXLOrders():
     ib = ibi.IB()
     ordersCallingWorksheet = wb.sheets.active.name
 
+    # Get the Excel cell address where "Positions to Close" begin
+    temp_macro = wb.macro("findTextOccurence")
+    cellAddress = temp_macro(ordersCallingWorksheet, 'Order List')
+
     # Start a new IB connection
     ib.connect('127.0.0.1', getIbConnectionPort(ordersCallingWorksheet), clientId=2)
 
     ordersFromXL = []
 
-    if wb.sheets(ordersCallingWorksheet).range("A20").value.strip() == "":
+    # Retrieve orders to be placed from Excel
+    if wb.sheets(ordersCallingWorksheet).range(cellAddress).value.strip() == "":
         raise ValueError ("No Orders to Submit")
     else:
-        ordersFromXL = wb.sheets(ordersCallingWorksheet).range("A20").options(expand='table').value
+        ordersFromXL = wb.sheets(ordersCallingWorksheet).range(cellAddress).options(expand='table').value
 
     # Place orders one at a time
     for order in ordersFromXL:
@@ -85,7 +142,7 @@ def globalCancelOrders():
 
 def main():
     global ib, wb, accountNumberToSheet
-    accountNumberToSheet = {"Add account number here":"Brokerage"}
+    accountNumberToSheet = {"U4529195":"Brokerage"}
 
     #controller = ibi.IBController('TWS', '969', 'paper',
     #    TWSUSERID='enter username here', TWSPASSWORD='enter password here')
@@ -102,7 +159,7 @@ def main():
 
     while True:
         updateAccountAndPortfolio()
-        ib.sleep(120)
+        ib.sleep(30)
 
     try:
         loop.run_forever()
