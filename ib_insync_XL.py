@@ -9,7 +9,7 @@ def accountValue(accountNumber, tag: str) -> str:
 
 
 def getAccountNumberDict():
-    return {"DU2674694": "paper"}
+    return {"Enter your account number here": "paper"}
 
 
 def getIbConnectionPort(xlSheetName):
