@@ -12,6 +12,10 @@ def getAccountNumberDict():
     return {"Enter your account number here": "paper"}
 
 
+def getSheetNameDict():
+    return {"paper": "Enter your account number here"}
+
+
 def getIbConnectionPort(xlSheetName):
     # return the socket port number to use for connecting to TWS
     if xlSheetName == "Paper":
@@ -53,12 +57,13 @@ def closePositions():
                         ib.disconnect()
                         raise ValueError ("Incorrect Limit Price for " + position[0])
                     else:
-                        closingOrder = ibi.LimitOrder(closingAction, abs(acccountPosition.position), position[2])
+                        closingOrder = ibi.LimitOrder(closingAction, abs(acccountPosition.position), position[2], account=getSheetNameDict().get(callingWorksheet))
                 elif position[1].upper() == "MKT":
-                    closingOrder = ibi.MarketOrder(closingAction, abs(acccountPosition.position))
+                    closingOrder = ibi.MarketOrder(closingAction, abs(acccountPosition.position), account=getSheetNameDict().get(callingWorksheet))
                 else:
                     raise ValueError ("Incorrect Order Type for " + position[0])
 
+                ib.qualifyContracts(acccountPosition.contract)
                 trade = ib.placeOrder(acccountPosition.contract, closingOrder)
                 assert trade in ib.trades()
 
@@ -88,9 +93,9 @@ def placeOrders():
     for order in ordersFromXL:
         # Create the entryOrder object
         if order[2].upper() == "LMT":
-            entryOrder = ibi.LimitOrder(order[1], abs(int(order[6])), order[5])
+            entryOrder = ibi.LimitOrder(order[1], abs(int(order[6])), order[5], account=getSheetNameDict().get(callingWorksheet))
         elif order[2].upper() == "MKT":
-            entryOrder = ibi.MarketOrder(order[1], abs(int(order[6])))
+            entryOrder = ibi.MarketOrder(order[1], abs(int(order[6])), account=getSheetNameDict().get(callingWorksheet))
         else:
             raise ValueError ("Incorrect Order Type in " + order[0])
 
@@ -102,6 +107,10 @@ def placeOrders():
             ib.qualifyContracts(contract)
         else:
             raise ValueError ("Incorrect instrument type")
+
+        ib.qualifyContracts(contract)
+        trade = ib.placeOrder(contract, entryOrder)
+        assert trade in ib.trades()
 
     # Disconnect from IB after placing the orders
     ib.disconnect()
