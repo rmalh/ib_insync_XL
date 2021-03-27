@@ -1,7 +1,7 @@
 # ib_insync_XL
 The purpose of this project is to enable others who use Interactive Brokers to write customized trading applications in Python. Interactive Brokers API can be difficult to use, but ib_insync encapsulates the API in an easy-to-use, powerful wrapper. This project goes a step further and ties in Excel, which makes trading significantly easier.
 
-Once the user has come up with a trading strategy, the sample code provided in this project can then be used and extended to write custom algorithms.
+After developing a trading strategy, the code in this project can then be used and extended to write custom algorithms.
 
 Note that:
 - All code is written on Macos, due to which some xlWings functionality such as UDFs is not available
